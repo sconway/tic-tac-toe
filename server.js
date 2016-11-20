@@ -18,7 +18,7 @@ app.use(webpackDevMiddleware(compiler, {
   historyApiFallback: true,
 }));
 
-app.use(express.static(__dirname + '/www'));
+app.use(express.static(__dirname + '/public'));
 
 // Fire this bitch up (start our server)
 var server = http.createServer(app).listen(port, function() {
