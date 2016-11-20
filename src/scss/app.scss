@@ -1,8 +1,6 @@
-/* 
 //
 // Tic Tac Toe
 //
-*/
 html,body {
   background: #f1f1f1;
   margin: 0;
@@ -47,13 +45,12 @@ html,body {
 }
 
 
-/*
+
 //
 // Announcements
 // 
 // These include the main container and the message/button within it.
 //
-*/
 .announcement {
   background: #2b303a;
   display: flex;
@@ -83,11 +80,10 @@ html,body {
 }
 
 
-/*
+
 //
 // Buttons
 //
-*/
 .btn {
   align-items: center;
   background: transparent;

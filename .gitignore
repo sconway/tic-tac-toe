@@ -1,4 +1,8 @@
 node_modules
+npm-debug.log
+
+
 .DS_Store
 .bablerc
-www/bundle.js
+
+
