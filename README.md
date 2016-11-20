@@ -1,3 +1,4 @@
+
 Minimal React Starter
 ---
 
@@ -76,3 +77,7 @@ HMR is not supported in the master branch for simplicity. If you would like HMR 
 ```
 git clone -b hmr git@github.com:ahfarmer/minimal-react-starter.git
 ```
+=======
+# tic-tac-toe
+ReactJS based Tic Tac Toe with Web Sockets 
+
