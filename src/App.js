@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Styles from './css/app.css';
+import Styles from '../src/css/app.css';
 import Tile from "./Tile.js";
 import Menu from "./Menu.js";
 import Announcement from "./Announcement.js";
