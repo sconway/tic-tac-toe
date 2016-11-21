@@ -55,6 +55,6 @@
   },
   "scripts": {
     "build": "webpack --config ./webpack.prod.config.js --progress --colors",
-    "start": "node src/app.js"
+    "start": "node app.js"
   }
 }
