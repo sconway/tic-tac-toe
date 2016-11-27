@@ -1,5 +1,5 @@
 {
-  "name": "React Tic Tac Toe",
+  "name": "tic-tac-react-with-sockets",
   "version": "0.0.2",
   "description": "An implementation of Tic Tac Toe in React.js with websockets and an Express server",
   "main": "src/index.js",
