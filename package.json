@@ -1,26 +1,32 @@
 {
-  "name": "minimal-react-starter",
-  "version": "0.0.3",
-  "description": "Minimal react starter project",
+  "name": "React Tic Tac Toe",
+  "version": "0.0.2",
+  "description": "An implementation of Tic Tac Toe in React.js with websockets and an Express server",
   "main": "src/index.js",
   "keywords": [
     "react",
     "webpack",
     "babel",
-    "minimal",
-    "starter"
+    "express",
+    "javascript",
+    "sockets.io",
+    "node",
+    "tic",
+    "tac",
+    "toe"
   ],
-  "author": "Andrew H Farmer",
+  "author": "Scott Conway",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/ahfarmer/minimal-react-starter.git"
+    "url": "https://github.com/sconway/tic-tac-toe.git"
   },
   "dependencies": {
     "express": "^4.14.0",
     "react": "^15.3.1",
     "react-dom": "^15.3.1",
-    "socket.io": "^1.5.1"
+    "socket.io": "^1.5.1",
+    "webpack-dev-server": "^1.16.2"
   },
   "devDependencies": {
     "babel": "^6.5.2",
@@ -33,12 +39,13 @@
     "css-loader": "^0.26.0",
     "file-loader": "^0.8.5",
     "http": "0.0.0",
-    "node-sass": "^3.4.2",
-    "sass-loader": "^3.2.0",
+    "node-sass": "^3.13.0",
+    "sass-loader": "^3.2.3",
     "style-loader": "^0.13.1",
     "url-loader": "^0.5.6",
-    "webpack": "^1.13.2",
+    "webpack": "^1.13.3",
     "webpack-dev-middleware": "^1.6.1",
+    "webpack-dev-server": "^1.16.2",
     "webpack-hot-middleware": "^2.10.0"
   },
   "presets": [
@@ -54,6 +61,7 @@
     }
   },
   "scripts": {
+    "dev": "webpack --config ./webpack.dev.config.js --progress --colors --inline --hot",
     "build": "webpack --config ./webpack.prod.config.js --progress --colors",
     "start": "node app.js"
   }

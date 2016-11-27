@@ -1,11 +1,11 @@
-import React, { Component } from 'react';
-// import Styles from '../scss/app.scss';
-import Tile from "./Tile.js";
-import Menu from "./Menu.js";
-import Announcement from "./Announcement.js";
+import React, { Component } from 'react'
+// import Tile from "./Tile.js"
+import Menu from "./Menu.js"
+import Announcement from "./Announcement.js"
+import SideBar from "./SideBar.js"
+import Board from "./Board.js"
 import io from 'socket.io-client'
 
-// let css = require("css-loader!./App.css");
 let host   = document.location.hostname + ":" + document.location.port;
 let socket = io(host);
 
@@ -20,8 +20,10 @@ export default class App extends Component {
       ],
       winner: null,
       turn: 'x'
-    }
-    this.player = 'x';
+    };
+    this.player = null;
+    this.matchFound = null;
+    this.isWaiting = true;
   }
 
   /**
@@ -40,6 +42,15 @@ export default class App extends Component {
     });
   }
 
+  /*
+   * Called when the reset button is clicked. Sends a message to 
+   * the server and clears the state of the game.
+   */
+  onReset(){
+    socket.emit('reset');
+    this.resetBoard();
+  }
+
   /**
    * Called after the game board state is set, this function checks for
    * any winners and updates the current state with the winner. 
@@ -53,7 +64,6 @@ export default class App extends Component {
 
     if (moves.length === 9) {
       this.setState({ winner: 'd'  });
-      //Make game over component visible
       return;
     } else {
       var topRow    = this.state.gameBoard[0] + this.state.gameBoard[1] + this.state.gameBoard[2];
@@ -70,52 +80,10 @@ export default class App extends Component {
           rightCol.match(/xxx|ooo/) || leftDiag.match(/xxx|ooo/)  ||
           rightDiag.match(/xxx|ooo/)) {
         this.setState({ 
-          winner: this.state.turn 
+          winner: (this.state.turn === 'x' ? 'o' : 'x')
         }, this.sendWinner, this);
         return;
       }
-
-
-      // if (middleRow.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
-
-
-      // if (bottomRow.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
-
-
-      // if (leftCol.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
-
-
-      // if (middleCol.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
-
-
-      // if (rightCol.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
-
-
-      // if (leftDiag.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
-
-
-      // if (rightDiag.match(/xxx|ooo/)){
-      //   this.setState({ winner: this.state.turn });
-      //   return;
-      // }
 
       // If we make it this far, there hasn't been a winner yet.
       console.log("emitting board move");
@@ -139,9 +107,7 @@ export default class App extends Component {
    *
    */
   onWinner(winner) {
-    this.setState({
-      winner: winner
-    });
+    this.setState({ winner: winner });
   }
 
   /**
@@ -185,6 +151,13 @@ export default class App extends Component {
     }, this.checkForWinner, this);
   }
 
+  /**
+   * Sets the current state based on the information received
+   * in the parameter.
+   *
+   * @param data : object
+   *
+   */
   updateState(data) {
     console.log("updateState Called");
     this.setState({
@@ -193,16 +166,24 @@ export default class App extends Component {
     });
   }
 
+  updateIntro() {
+    console.log("updateIntro Called")
+    let that = this;
+    
+    setTimeout(() => {
+      console.log("no longer waiting");
+
+      that.isWaiting = false;
+      that.setState(that.state);
+    }, 2000);
+  }
+
   /**
    * Called once this component is rendered.
    */
   componentDidMount() {
     console.log('Component Mounted in App.js');
     let that = this;
-
-
-    // let the server know the component is ready.
-    socket.emit('componentMounted');
 
     // when we make the connection with the server socket.
     socket.on('connect', function() {
@@ -213,15 +194,26 @@ export default class App extends Component {
     // when we get an updated player count..
     socket.on('playerX', function(count) {
       that.player = 'x';
+      that.isWaiting = true;
       console.log("You are Player: ", that.player);
       console.log("Turn: ", that.state.turn);
+      that.setState(that.state);
     });
 
     socket.on('playerO', function(count) {
       that.player = 'o';
+      that.matchFound = true;
       console.log("You are Player: ", that.player);
       console.log("Turn: ", that.state.turn);
+      that.setState(that.state, that.updateIntro);
     });
+
+    // when we find a pair for the odd player
+    socket.on('matchFound', function() {
+      console.log("Match Found");
+      that.matchFound = true;
+      that.setState(that.state, that.updateIntro);
+    })
 
     // when a player move event is detected.
     socket.on('playerMove', function(data) {
@@ -234,6 +226,23 @@ export default class App extends Component {
       console.log('Game over. Winner is: ', winner);
       that.onWinner(winner);
     });
+
+    // when a player clicks the reset button
+    socket.on('reset', function(winner) {
+      that.resetBoard()
+    })
+
+    // if the other player disconnects
+    socket.on('playerDisconnect', function() {
+      that.isWaiting = true;
+      that.matchFound = null;
+      that.player = 'x';
+      that.resetBoard()
+    })
+
+    // console.log("client ID again: ", socket.io.engine.id);
+    // let the server know the component is ready.
+    // socket.emit('componentMounted', socket.io.engine.id);
   }
 
   componentWillMount() {
@@ -247,22 +256,21 @@ export default class App extends Component {
   render(){
     return (
       <div className='container'>
-        <Menu reset={this.resetBoard.bind(this)} />
+        <Menu 
+          reset={this.onReset.bind(this)}
+          turn={this.state.turn}
+          player={this.player} />
+        <SideBar player={this.player} />
         <Announcement 
-          reset={this.resetBoard.bind(this)} 
+          reset={this.onReset.bind(this)}
+          isWaiting={this.isWaiting}
+          matchFound={this.matchFound}
+          player={this.player} 
           winner={this.state.winner} />
-        <div className='board'>
-          {this.state.gameBoard.map((value, i) => {
-            return (
-              <Tile
-                key={i}
-                loc={i}
-                value={value}
-                handleClick={this.handleClick.bind(this)}
-                turn={this.state.turn} />
-            );
-          })}
-        </div>
+        <Board 
+          gameBoard={this.state.gameBoard}
+          handleClick={this.handleClick.bind(this)}
+          turn={this.state.turn} />
       </div>
     );
   }
