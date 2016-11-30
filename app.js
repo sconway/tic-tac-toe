@@ -37,7 +37,13 @@ io.on('connection', (socket) => {
   const numClients = socket.conn.server.clientsCount
   const socketID   = socket.id
 
-  socketSet.push(socketID)
+  // check for an empty flag to see if a player is without a match.
+  if (socketSet.indexOf('!') > -1) {
+    let index  = socketSet.indexOf('!')
+    socketSet[index] = socketID
+  } else {
+    socketSet.push(socketID)
+  }
 
   let socketIndex = socketSet.indexOf(socketID)
   // const prevSocket  = socketIndex > 0 ? socketSet[socketIndex-1] : null
@@ -64,8 +70,8 @@ io.on('connection', (socket) => {
   socket.on('boardMove', (data) => {
     let socketIndex = socketSet.indexOf(socketID)
     let prevSocket  = (socketIndex > 0) ? socketSet[socketIndex-1] : 0
-    let nextSocket  = socketSet[socketIndex+1] || null
-    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket;
+    let nextSocket  = socketSet[socketIndex+1] || socketSet[socketIndex] || null
+    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket
 
     console.log("previous socket: ", prevSocket);
     console.log("next socket: ", nextSocket);
@@ -80,8 +86,8 @@ io.on('connection', (socket) => {
     console.log("Reset Occurred");
     let socketIndex = socketSet.indexOf(socketID)
     let prevSocket  = (socketIndex > 0) ? socketSet[socketIndex-1] : 0
-    let nextSocket  = socketSet[socketIndex+1] || null
-    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket;
+    let nextSocket  = socketSet[socketIndex+1] || socketSet[socketIndex] || null
+    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket
 
     io.to(destination).emit('reset');
   })
@@ -92,8 +98,8 @@ io.on('connection', (socket) => {
 
     let socketIndex = socketSet.indexOf(socketID)
     let prevSocket  = (socketIndex > 0) ? socketSet[socketIndex-1] : 0
-    let nextSocket  = socketSet[socketIndex+1] || null
-    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket;
+    let nextSocket  = socketSet[socketIndex+1] || socketSet[socketIndex] || null
+    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket
 
     io.to(destination).emit('winner', winner)
   })
@@ -102,17 +108,94 @@ io.on('connection', (socket) => {
     console.log("user disconnected");
     let socketIndex = socketSet.indexOf(socketID)
     let prevSocket  = (socketIndex > 0) ? socketSet[socketIndex-1] : 0
-    let nextSocket  = socketSet[socketIndex+1] || null
-    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket;
-    let numClients = socket.conn.server.clientsCount
+    let nextSocket  = socketSet[socketIndex+1] || socketSet[socketIndex] || null
+    let destination = (socketIndex + 1) % 2 === 0 ? prevSocket : nextSocket
+    let numClients  = socket.conn.server.clientsCount
 
     console.log("Num clients After disconnect: ", numClients)
-    console.log("Destination After disconnect: ", destination);
+    console.log("Socket Index That Disconnected: ", socketIndex)
+    console.log("Prev Socket After disconnect: ", prevSocket)
+    console.log("Next Socket After disconnect: ", nextSocket)
+    console.log("Destination After disconnect: ", destination)
 
-    io.to(destination).emit('playerDisconnect')
+    if (destination)
+      io.to(destination).emit('playerDisconnect')
 
     if (numClients !== 0) {
-      socketSet.splice(socketIndex, 1)
+
+      // Check for an empty flag to see if a player is without a match.
+      if (socketSet.indexOf('!') > -1) {
+        console.log("There is an empty space already. Re-allocating matches.");
+        let index  = socketSet.indexOf('!')
+        console.log("index of the empty space is: ", index);
+
+        // If player X was the one who quit, move the waiting piece into its spot
+        if (socketIndex % 2 === 0) {
+          console.log("Player X was the one who just left");
+          socketSet[socketIndex] = socketSet[index-1]
+          io.to(socketSet[socketIndex+1]).emit('playerO', numClients)
+          io.to(socketSet[socketIndex]).emit('matchFound')
+          socketSet.splice(index-1, 2)
+        } else {
+          console.log("Player O was the one who just left");
+          socketSet[socketIndex] = socketSet[index-1]
+          io.to(socketSet[socketIndex]).emit('playerO', numClients)
+          io.to(socketSet[socketIndex-1]).emit('matchFound')
+          socketSet.splice(index-1, 2)
+        }
+      }
+
+      // If there is a player without a match when someone disconnects,
+      // pair the waiting player up with the player who lost their match
+      else if (socketSet.length % 2 !== 0) {
+        console.log("Odd number of players after disconnect");
+        // if the player who left was player 'x', move the partner to 'x',
+        // and set the waiting player to be player 'o'
+        if (socketIndex % 2 === 0) {
+          console.log("It was Player X who left")
+          // Make sure there is a next socket
+          if (socketSet[socketIndex+1]) {
+            console.log("Player X was not the last player.")
+            console.log("Moving player O into the old X spot, and the waiting piece into O's spot")
+            socketSet[socketIndex]   = socketSet[socketIndex+1]
+            socketSet[socketIndex+1] = socketSet[socketSet.length-1]
+            io.to(socketSet[socketIndex+1]).emit('playerO', numClients)
+            io.to(socketSet[socketIndex]).emit('matchFound')
+            console.log("Removing the waiting piece since it has now been moved")
+            socketSet.splice(socketSet.length-1, 1)
+          } else {
+            console.log("It was the last player that left. Removing from the socket array")
+            socketSet.splice(socketSet.length-1, 1)
+          }
+        } else {
+          console.log("It was player O that left Move the waiting piece there")
+          socketSet[socketIndex] = socketSet[socketSet.length-1]
+          io.to(socketSet[socketIndex]).emit('playerO', numClients)
+          io.to(socketSet[socketIndex-1]).emit('matchFound')
+          console.log("Removing the waiting piece since it has now been moved")
+          socketSet.splice(socketSet.length-1, 1)
+        }
+
+      } 
+
+      else {
+        console.log("Even number of Players after disconnect")
+        // If the first player quits, move the partner into it's position
+        // and set the second position to be empty. So if player 'x' quits,
+        // player 'o' will become 'x' and the next match will take player 'o'
+        if (socketIndex % 2 === 0) {
+          console.log("Socket that left was Player X, setting it to be next player or '!' ");
+          socketSet[socketIndex] = socketSet[socketIndex+1] || '!'
+          if (socketSet[socketIndex+1]) {
+            console.log("Setting Player O's spot to !");
+            socketSet[socketIndex+1] = '!'
+          } 
+        } else {
+          console.log("Setting Player O's spot to !");
+          socketSet[socketIndex] = '!'
+        }
+      }
+
     } else {
       socketSet = []
     }
