@@ -118,8 +118,10 @@ io.on('connection', (socket) => {
     console.log("Next Socket After disconnect: ", nextSocket)
     console.log("Destination After disconnect: ", destination)
 
-    if (destination)
+    if (destination) {
+      console.log("sending disconnect signal to: ", destination)
       io.to(destination).emit('playerDisconnect')
+    }
 
     if (numClients !== 0) {
 
@@ -151,7 +153,7 @@ io.on('connection', (socket) => {
         console.log("Odd number of players after disconnect");
         // if the player who left was player 'x', move the partner to 'x',
         // and set the waiting player to be player 'o'
-        if (socketIndex % 2 === 0) {
+        if (socketIndex % 2 === 0) { 
           console.log("It was Player X who left")
           // Make sure there is a next socket
           if (socketSet[socketIndex+1]) {
@@ -175,7 +177,6 @@ io.on('connection', (socket) => {
           console.log("Removing the waiting piece since it has now been moved")
           socketSet.splice(socketSet.length-1, 1)
         }
-
       } 
 
       else {

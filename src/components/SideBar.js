@@ -1,5 +1,9 @@
 import React from 'react'
 
+/**
+ * Displays the current player's piece or a message if it has not
+ * yet been assigned a piece.
+ */
 function PlayerInfo(props) {
   const player = props.player
 

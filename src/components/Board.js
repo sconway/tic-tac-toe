@@ -8,11 +8,13 @@ export default class Board extends React.Component {
         {this.props.gameBoard.map((value, i) => {
           return (
             <Tile
-              key={i}
-              loc={i}
-              value={value}
+              key        ={i}
+              loc        ={i}
+              value      ={value}
+              player     ={this.props.player}
+              isPlayingAI={this.props.isPlayingAI}
               handleClick={this.props.handleClick}
-              turn={this.props.turn} />
+              turn       ={this.props.turn} />
           );
         })}
       </div>

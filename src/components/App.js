@@ -6,8 +6,6 @@ import SideBar from "./SideBar.js"
 import Board from "./Board.js"
 import io from 'socket.io-client'
 
-let host   = document.location.hostname + ":" + document.location.port;
-let socket = io(host);
 
 export default class App extends Component {
   constructor(){
@@ -18,85 +16,63 @@ export default class App extends Component {
         ' ', ' ', ' ',
         ' ', ' ', ' '
       ],
+      isPlayingAI: false,
+      isWaiting: true,
       winner: null,
       turn: 'x'
     };
-    this.player = null;
-    this.matchFound = null;
-    this.isWaiting = true;
+    // this.isPlayingAI      = false;
+    this.player           = null;
+    this.matchFound       = null;
+    this.playerDisconnect = false;
+    this.host   = document.location.hostname + ":" + document.location.port;
+    this.socket = io(this.host);
   }
 
-  /**
-   * Called when the reset button is clicked, this function
-   * sets the board back to the default state.
+  /*
+   * Helper function that returns a random number between the two supplied
+   * numbers. 
+   *
+   *  @param min  :  Integer
+   *  @param max  :  Integer
    */
-  resetBoard(){
-    this.setState({
-      gameBoard: [
-        ' ',' ',' ',
-        ' ',' ',' ',
-        ' ',' ',' '
-      ],
-      winner: null,
-      turn: 'x'
-    });
+  rando(min, max) {
+    return Math.floor(Math.random() * (max - min) + min);
   }
+
 
   /*
    * Called when the reset button is clicked. Sends a message to 
    * the server and clears the state of the game.
    */
-  onReset(){
-    socket.emit('reset');
-    this.resetBoard();
+  onReset(isPlayingAI){
+    this.socket.emit('reset');
+    this.resetBoard(false, isPlayingAI);
   }
 
-  /**
-   * Called after the game board state is set, this function checks for
-   * any winners and updates the current state with the winner. 
-   */
-  checkForWinner() {
-    console.log("checkForWinner Called");
-    //Check if there is a winner or draw
-    var moves = this.state.gameBoard.join('').replace(/ /g,'');
-
-    console.log(this.state.winner, this.state.turn, this.state.gameBoard);
-
-    if (moves.length === 9) {
-      this.setState({ winner: 'd'  });
-      return;
-    } else {
-      var topRow    = this.state.gameBoard[0] + this.state.gameBoard[1] + this.state.gameBoard[2];
-      var middleRow = this.state.gameBoard[3] + this.state.gameBoard[4] + this.state.gameBoard[5];
-      var bottomRow = this.state.gameBoard[6] + this.state.gameBoard[7] + this.state.gameBoard[8];
-      var leftCol   = this.state.gameBoard[0] + this.state.gameBoard[3] + this.state.gameBoard[6];
-      var middleCol = this.state.gameBoard[1] + this.state.gameBoard[4] + this.state.gameBoard[7];
-      var rightCol  = this.state.gameBoard[2] + this.state.gameBoard[5] + this.state.gameBoard[8];
-      var leftDiag  = this.state.gameBoard[0] + this.state.gameBoard[4] + this.state.gameBoard[8];
-      var rightDiag = this.state.gameBoard[2] + this.state.gameBoard[4] + this.state.gameBoard[6];
-
-      if (topRow.match(/xxx|ooo/)   || middleRow.match(/xxx|ooo/) ||
-          leftCol.match(/xxx|ooo/)  || middleCol.match(/xxx|ooo/) ||
-          rightCol.match(/xxx|ooo/) || leftDiag.match(/xxx|ooo/)  ||
-          rightDiag.match(/xxx|ooo/)) {
-        this.setState({ 
-          winner: (this.state.turn === 'x' ? 'o' : 'x')
-        }, this.sendWinner, this);
-        return;
-      }
-
-      // If we make it this far, there hasn't been a winner yet.
-      console.log("emitting board move");
-      socket.emit('boardMove', this.state);
-    }
+  nextTurn(currentTurn) {
+    console.log("currentTurn called: ", currentTurn);
+    return (currentTurn === 'x' ? 'o' : 'x' );
   }
 
   /**
    * Called if a winner is determined in the checkWinner function. 
    * Emits the winner of the game for the server to see.
    */
-  sendWinner() {
-    socket.emit('winner', this.state.winner);
+  sendWinner(isPlayingAI, curState) {
+    console.log("sendWinner called: ", curState);
+    if (!isPlayingAI) {
+      this.socket.emit('winner', curState);
+    }
+  }
+
+  sendBoardUpdate(isPlayingAI, curState) {
+    console.log("sendBoardUpdate Called. State is: ", curState)
+    if (!isPlayingAI) {
+      this.socket.emit('boardMove', curState);
+    } else {
+      this.makeAIMove(curState);
+    }
   }
 
   /**
@@ -111,20 +87,63 @@ export default class App extends Component {
   }
 
   /**
+   * Called when the reset button is clicked, this function
+   * sets the board back to the default state. Sets the game
+   * state to be waiting if the parameter is true.
+   *
+   * @param isWaiting : Boolean
+   *
+   */
+  resetBoard(isWaiting, isPlayingAI){
+    console.log("resetBoard Called")
+    this.setState({
+      gameBoard: [
+        ' ',' ',' ',
+        ' ',' ',' ',
+        ' ',' ',' '
+      ],
+      isPlayingAI: isPlayingAI,
+      isWaiting: isWaiting,
+      winner: null,
+      turn: 'x'
+    });
+  }
+
+  getWinner() {
+    let moves     = this.state.gameBoard.join('').replace(/ /g,'');
+    let topRow    = this.state.gameBoard[0] + this.state.gameBoard[1] + this.state.gameBoard[2];
+    let middleRow = this.state.gameBoard[3] + this.state.gameBoard[4] + this.state.gameBoard[5];
+    let bottomRow = this.state.gameBoard[6] + this.state.gameBoard[7] + this.state.gameBoard[8];
+    let leftCol   = this.state.gameBoard[0] + this.state.gameBoard[3] + this.state.gameBoard[6];
+    let middleCol = this.state.gameBoard[1] + this.state.gameBoard[4] + this.state.gameBoard[7];
+    let rightCol  = this.state.gameBoard[2] + this.state.gameBoard[5] + this.state.gameBoard[8];
+    let leftDiag  = this.state.gameBoard[0] + this.state.gameBoard[4] + this.state.gameBoard[8];
+    let rightDiag = this.state.gameBoard[2] + this.state.gameBoard[4] + this.state.gameBoard[6];
+
+    // Check for any winning combinations
+    if (topRow.match(/xxx|ooo/)   || middleRow.match(/xxx|ooo/) ||
+        leftCol.match(/xxx|ooo/)  || middleCol.match(/xxx|ooo/) ||
+        rightCol.match(/xxx|ooo/) || leftDiag.match(/xxx|ooo/)  ||
+        rightDiag.match(/xxx|ooo/)) {
+      return this.nextTurn(this.state.turn);
+    } else if (moves.length === 9) {
+      return 'd';
+    } else {
+      return null;
+    }
+  }
+
+  /**
    * Called when a tile is clicked, this function checks if it
    * is a valid move and 
    */
-  handleClick(loc, player) {
-    if (this.player === this.state.turn) {
-      console.log("handleClick Called");
-      console.log("Player: ", this.player);
-      console.log("Turn: ", this.state.turn);
-
+  handleClick(loc, player, isPlayingAI) {
+    console.log("handle clicked called: ", loc, player, isPlayingAI, this.state.turn);
+    if (player === this.state.turn) {
       let currentGameBoard = this.state.gameBoard;
       
-      //make game over component visible
+      //someone won
       if (this.state.winner !== null) {
-        console.log("Winner", this.state.winner);
         return;
       }
 
@@ -134,8 +153,55 @@ export default class App extends Component {
       }
 
       currentGameBoard.splice(loc, 1, this.state.turn);
+      this.updateBoard(currentGameBoard, isPlayingAI);
+    }
+  }
 
-      this.updateBoard(currentGameBoard);
+  /**
+   * Sets up the waiting player to play a randomized AI
+   */
+  playAI() {
+    // this.isWaiting = false;
+    this.socket.disconnect();
+    this.setState({
+      isWaiting: false,
+      isPlayingAI: true
+    });
+  }
+
+  /**
+   * Simulates a player click using a very simple(dumb, naive, etc) AI
+   */
+  makeAIMove(curState) {
+    console.log("makeAIMove called: ", curState);
+    let boardLength = curState.gameBoard.length;
+    let moveIndex   = this.rando(0, boardLength);
+
+    // Only simulate the click on a space that doesn't have a piece placed
+    if (curState.gameBoard[moveIndex] === ' ') {
+      console.log("making AI move at index: ", moveIndex);
+      this.handleClick(moveIndex, 'o', true);
+    } else {
+      this.makeAIMove(curState);
+    }
+  }
+
+  /**
+   * Called after the board state is set. This function checks for a winner
+   * and handles the AI or human aspects of the game.
+   */
+  afterBoardUpdate(isPlayingAI, curState) {
+    console.log("afterBoardUpdate called: ", curState)
+    let winner = this.getWinner()
+
+    if (winner) {
+      this.setState({ 
+        winner: winner
+      }, () => {
+        this.sendWinner(isPlayingAI, curState);
+      });
+    } else {
+      this.sendBoardUpdate(isPlayingAI, curState);
     }
   }
   
@@ -143,12 +209,15 @@ export default class App extends Component {
    * Calls the set state function to update the gameboard and
    * check for a winner once that is done.
    */
-  updateBoard(currentBoard) {
+  updateBoard(currentBoard, isPlayingAI) {
     console.log("updateBoard Called");
+
     this.setState({
       gameBoard: currentBoard,
-      turn: (this.state.turn === 'x') ? 'o' : 'x' 
-    }, this.checkForWinner, this);
+      turn: this.nextTurn(this.state.turn)
+    }, () => {
+      this.afterBoardUpdate(isPlayingAI, this.state)
+    });
   }
 
   /**
@@ -159,13 +228,17 @@ export default class App extends Component {
    *
    */
   updateState(data) {
-    console.log("updateState Called");
+    console.log("updateState Called: ", data);
     this.setState({
       gameBoard: data.gameBoard,
       turn: data.turn
     });
   }
 
+  /**
+   * Called after a match is found, this function sets the 
+   * waiting variable to be false
+   */
   updateIntro() {
     console.log("updateIntro Called")
     let that = this;
@@ -173,8 +246,7 @@ export default class App extends Component {
     setTimeout(() => {
       console.log("no longer waiting");
 
-      that.isWaiting = false;
-      that.setState(that.state);
+      that.setState({ isWaiting: false });
     }, 2000);
   }
 
@@ -186,63 +258,63 @@ export default class App extends Component {
     let that = this;
 
     // when we make the connection with the server socket.
-    socket.on('connect', function() {
+    this.socket.on('connect', () => {
       console.log('Client socket connected');
-      console.log("socket ID: ", socket.io.engine.id);
-    });
+      console.log("socket ID: ", this.socket.io.engine.id);
+    })
 
     // when we get an updated player count..
-    socket.on('playerX', function(count) {
-      that.player = 'x';
-      that.isWaiting = true;
+    this.socket.on('playerX', (count) => {
+      that.player    = 'x';
       console.log("You are Player: ", that.player);
       console.log("Turn: ", that.state.turn);
-      that.setState(that.state);
-    });
+      that.setState({ isWaiting: true });
+    })
 
-    socket.on('playerO', function(count) {
-      that.player = 'o';
+    this.socket.on('playerO', (count) => {
+      that.player     = 'o';
       that.matchFound = true;
       console.log("You are Player: ", that.player);
       console.log("Turn: ", that.state.turn);
       that.setState(that.state, that.updateIntro);
-    });
+    })
 
     // when we find a pair for the odd player
-    socket.on('matchFound', function() {
+    this.socket.on('matchFound', () => {
       console.log("Match Found");
       that.matchFound = true;
       that.setState(that.state, that.updateIntro);
     })
 
     // when a player move event is detected.
-    socket.on('playerMove', function(data) {
+    this.socket.on('playerMove', (data) => {
       console.log('Player Move Detected');
       that.updateState(data);
-    }); 
+    }) 
 
     // when a player has won the game.
-    socket.on('winner', function(winner) {
-      console.log('Game over. Winner is: ', winner);
-      that.onWinner(winner);
-    });
+    this.socket.on('winner', (state) => {
+      console.log('Game over. Winner is: ', state.winner);
+      that.onWinner(state.winner);
+    })
 
     // when a player clicks the reset button
-    socket.on('reset', function(winner) {
-      that.resetBoard()
+    this.socket.on('reset', (winner) => {
+      that.resetBoard(false, false)
     })
 
     // if the other player disconnects
-    socket.on('playerDisconnect', function() {
-      that.isWaiting = true;
-      that.matchFound = null;
-      that.player = 'x';
-      that.resetBoard()
+    this.socket.on('playerDisconnect', () => {
+      console.log("Other Player Disconnected");
+      that.playerDisconnect = true;
+      that.matchFound       = null;
+      that.player           = 'x';
+      that.resetBoard(true, false)
     })
 
     // console.log("client ID again: ", socket.io.engine.id);
     // let the server know the component is ready.
-    // socket.emit('componentMounted', socket.io.engine.id);
+    // this.socket.emit('componentMounted', socket.io.engine.id);
   }
 
   componentWillMount() {
@@ -257,20 +329,25 @@ export default class App extends Component {
     return (
       <div className='container'>
         <Menu 
-          reset={this.onReset.bind(this)}
-          turn={this.state.turn}
+          turn  ={this.state.turn}
           player={this.player} />
-        <SideBar player={this.player} />
+        <SideBar 
+          player={this.player} />
         <Announcement 
-          reset={this.onReset.bind(this)}
-          isWaiting={this.isWaiting}
-          matchFound={this.matchFound}
-          player={this.player} 
-          winner={this.state.winner} />
+          onReset    ={this.onReset.bind(this)}
+          isWaiting  ={this.state.isWaiting}
+          matchFound ={this.matchFound}
+          disconnect ={this.playerDisconnect}
+          player     ={this.player} 
+          winner     ={this.state.winner}
+          isPlayingAI={this.state.isPlayingAI} 
+          playAI     ={this.playAI.bind(this)} />
         <Board 
-          gameBoard={this.state.gameBoard}
+          gameBoard  ={this.state.gameBoard}
           handleClick={this.handleClick.bind(this)}
-          turn={this.state.turn} />
+          isPlayingAI={this.state.isPlayingAI}
+          player     ={this.player}
+          turn       ={this.state.turn} />
       </div>
     );
   }

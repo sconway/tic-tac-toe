@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
-import ResetButton from './ResetButton.js';
 
+/**
+ * Returns one of two possible messages about the current player's turn.
+ */
 function TurnInfo(props) {
   const turn   = props.turn
   const player = props.player
