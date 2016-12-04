@@ -7,10 +7,10 @@ import React from 'react'
 function PlayerInfo(props) {
   const player = props.player
 
-  if (!player) {
-    return (<span className="player">You have not been assigned a piece yet :(</span>)
-  } else {
+  if (player) {
     return (<span className="player">{player}</span>)
+  } else {
+    return null;
   }
 }
 
