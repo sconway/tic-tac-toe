@@ -24,26 +24,30 @@ export default class App extends Component {
       turn: 'x'
     };
     this.timerReset       = this.resetTimer.bind(this);
+    this.connectionCheck  = this.checkConnect.bind(this);
     this.timeoutID        = null;
     this.player           = null;
     this.matchFound       = null;
     this.playerDisconnect = false;
+    this.connectionMutex  = true;
     this.host   = document.location.hostname + ":" + document.location.port;
-    this.socket = io(this.host);
+    // this.socket = io(this.host);
+    this.socket = null;
   }
 
 
   removeListeners() {
     console.log("removing idle listeners")
     document.getElementById('root').removeEventListener("mousemove", this.timerReset, false);
-    document.getElementById('root').removeEventListener("touchmove", this.timerReset, false);
+    document.getElementById('root').removeEventListener("deviceorientation", this.timerReset, false);
     document.getElementById('root').removeEventListener("MSPointerMove", this.timerReset, false);
+    this.resetTimer();
   }
 
   setupIdleTimer() {
     console.log("setupIdleTimer called. Socket is: ", this.socket);
     document.getElementById('root').addEventListener("mousemove", this.timerReset, false);
-    document.getElementById('root').addEventListener("touchmove", this.timerReset, false);
+    document.getElementById('root').addEventListener("deviceorientation", this.timerReset, false);
     document.getElementById('root').addEventListener("MSPointerMove", this.timerReset, false);
     this.startIdleTimer();
   }
@@ -220,6 +224,7 @@ export default class App extends Component {
    * Sets up the waiting player to play a randomized AI
    */
   playAI() {
+    this.removeListeners();
     this.socket.disconnect();
     this.player = 'x';
     this.resetBoard(false, true);
@@ -231,6 +236,7 @@ export default class App extends Component {
    */ 
   reconnectPlayer() {
     console.log("Reconnect player. Socket is: ", this.socket);
+    this.removeListeners();
     this.socket.connect();
     this.resetBoard(true, false);
   }
@@ -316,12 +322,10 @@ export default class App extends Component {
     }, 2000);
   }
 
-  /**
-   * Called once this component is rendered.
-   */
-  componentDidMount() {
-    console.log('Component Mounted in App.js');
+  connectSocket() {
     let that = this;
+
+    this.socket = io(this.host);
 
     // when we make the connection with the server socket.
     this.socket.on('connect', () => {
@@ -380,6 +384,27 @@ export default class App extends Component {
       that.player           = 'x';
       that.resetBoard(true, false)
     })
+  }
+
+  checkConnect() {
+    console.log("checkConnect called. mutex is: ", this.connectionMutex);
+    if (this.connectionMutex) {
+      this.connectionMutex = false;
+      this.connectSocket();
+    } else {
+      document.removeEventListener('mousemove', this.connectionCheck, false);
+      document.removeEventListener('deviceorientation', this.connectionCheck, false);
+    }
+  }
+
+  /**
+   * Called once this component is rendered.
+   */
+  componentDidMount() {
+    console.log('Component Mounted in App.js');
+    
+    document.addEventListener('mousemove', this.connectionCheck, false);
+    document.addEventListener('deviceorientation', this.connectionCheck, false);
   }
 
   componentWillMount() {
