@@ -49,15 +49,15 @@ export default class App extends Component {
   }
 
   startIdleTimer() {
-    console.log("startIdleTimer called");
+    // console.log("startIdleTimer called");
     this.timeoutID = window.setTimeout(this.goInactive.bind(this), 100000);
-    console.log("just added timeout: ", this.timeoutID)
+    // console.log("just added timeout: ", this.timeoutID)
   }
 
   resetTimer() {
-    console.log("reset timer called. ID is: ", this.timeoutID);
+    // console.log("reset timer called. ID is: ", this.timeoutID);
     if (this.timeoutID) {
-      console.log("resetting timer")
+      // console.log("resetting timer")
       window.clearInterval(this.timeoutID);
       this.goActive();
     }
@@ -79,7 +79,7 @@ export default class App extends Component {
   }
    
   goActive() {
-    console.log("goActive called");
+    // console.log("goActive called");
     this.startIdleTimer();
   }
 
@@ -117,10 +117,10 @@ export default class App extends Component {
    * Called if a winner is determined in the checkWinner function. 
    * Emits the winner of the game for the server to see.
    */
-  sendWinner(isPlayingAI, curState) {
-    console.log("sendWinner called: ", curState);
+  sendWinner(isPlayingAI, winner) {
+    console.log("sendWinner called: ", winner);
     if (!isPlayingAI) {
-      this.socket.emit('winner', curState);
+      this.socket.emit('winner', winner);
     }
   }
 
@@ -264,7 +264,7 @@ export default class App extends Component {
       this.setState({ 
         winner: winner
       }, () => {
-        this.sendWinner(isPlayingAI, curState);
+        this.sendWinner(isPlayingAI, this.state.winner);
       });
     } else {
       this.sendBoardUpdate(isPlayingAI, curState);
@@ -361,9 +361,9 @@ export default class App extends Component {
     }) 
 
     // when a player has won the game.
-    this.socket.on('winner', (state) => {
-      console.log('Game over. Winner is: ', state.winner);
-      that.onWinner(state.winner);
+    this.socket.on('winner', (winner) => {
+      console.log('Game over. Winner is: ', winner);
+      that.onWinner(winner);
     })
 
     // when a player clicks the reset button
@@ -380,10 +380,6 @@ export default class App extends Component {
       that.player           = 'x';
       that.resetBoard(true, false)
     })
-
-    // console.log("client ID again: ", socket.io.engine.id);
-    // let the server know the component is ready.
-    // this.socket.emit('componentMounted', socket.io.engine.id);
   }
 
   componentWillMount() {
