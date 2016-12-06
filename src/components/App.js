@@ -41,7 +41,8 @@ export default class App extends Component {
     document.getElementById('root').removeEventListener("mousemove", this.timerReset, false);
     document.getElementById('root').removeEventListener("deviceorientation", this.timerReset, false);
     document.getElementById('root').removeEventListener("MSPointerMove", this.timerReset, false);
-    this.resetTimer();
+    console.log("removing timeout with ID: ", this.timeoutID);
+    window.clearInterval(this.timeoutID);
   }
 
   setupIdleTimer() {
@@ -55,7 +56,7 @@ export default class App extends Component {
   startIdleTimer() {
     // console.log("startIdleTimer called");
     this.timeoutID = window.setTimeout(this.goInactive.bind(this), 100000);
-    // console.log("just added timeout: ", this.timeoutID)
+    console.log("just added timeout: ", this.timeoutID)
   }
 
   resetTimer() {
@@ -331,6 +332,7 @@ export default class App extends Component {
     this.socket.on('connect', () => {
       console.log('Client socket connected');
       console.log("socket ID: ", this.socket.io.engine.id);
+      that.setupIdleTimer();
     })
 
     // when we get an updated player count..
@@ -347,7 +349,7 @@ export default class App extends Component {
       console.log("You are Player: ", that.player);
       console.log("Turn: ", that.state.turn);
       that.setState(that.state, that.updateIntro);
-      that.setupIdleTimer();
+      // that.setupIdleTimer();
     })
 
     // when we find a pair for the odd player
@@ -355,7 +357,7 @@ export default class App extends Component {
       console.log("Match Found");
       that.matchFound = true;
       that.setState(that.state, that.updateIntro);
-      that.setupIdleTimer();
+      // that.setupIdleTimer();
     })
 
     // when a player move event is detected.
@@ -378,7 +380,7 @@ export default class App extends Component {
     // if the other player disconnects
     this.socket.on('playerDisconnect', () => {
       console.log("Other Player Disconnected");
-      that.removeListeners();
+      // that.removeListeners();
       that.playerDisconnect = true;
       that.matchFound       = null;
       that.player           = 'x';
