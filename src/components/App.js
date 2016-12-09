@@ -1,12 +1,10 @@
 import React, { Component } from 'react'
-// import Tile from "./Tile.js"
 import Menu from "./Menu.js"
 import Announcement from "./Announcement.js"
 import SideBar from "./SideBar.js"
 import Board from "./Board.js"
 import io from 'socket.io-client'
-
-// let timeoutID = null;
+import idleHelpers from './utilities/idleHelpers.js'
 
 export default class App extends Component {
   constructor(){
@@ -19,75 +17,20 @@ export default class App extends Component {
       ],
       isPlayingAI: false,
       isWaiting: true,
+      matchFound: false,
       isPlayerIdle: false,
+      playerDisconnect: false,
+      player: null,
       winner: null,
       turn: 'x'
     };
-    this.timerReset       = this.resetTimer.bind(this);
+    this.timerReset       = idleHelpers.resetTimer.bind(this);
     this.connectionCheck  = this.checkConnect.bind(this);
     this.timeoutID        = null;
-    this.player           = null;
-    this.matchFound       = null;
-    this.playerDisconnect = false;
     this.connectionMutex  = true;
     this.host   = document.location.hostname + ":" + document.location.port;
-    // this.socket = io(this.host);
     this.socket = null;
   }
-
-
-  removeListeners() {
-    console.log("removing idle listeners")
-    document.getElementById('root').removeEventListener("mousemove", this.timerReset, false);
-    document.getElementById('root').removeEventListener("deviceorientation", this.timerReset, false);
-    document.getElementById('root').removeEventListener("MSPointerMove", this.timerReset, false);
-    console.log("removing timeout with ID: ", this.timeoutID);
-    window.clearInterval(this.timeoutID);
-  }
-
-  setupIdleTimer() {
-    console.log("setupIdleTimer called. Socket is: ", this.socket);
-    document.getElementById('root').addEventListener("mousemove", this.timerReset, false);
-    document.getElementById('root').addEventListener("deviceorientation", this.timerReset, false);
-    document.getElementById('root').addEventListener("MSPointerMove", this.timerReset, false);
-    this.startIdleTimer();
-  }
-
-  startIdleTimer() {
-    // console.log("startIdleTimer called");
-    this.timeoutID = window.setTimeout(this.goInactive.bind(this), 100000);
-    console.log("just added timeout: ", this.timeoutID)
-  }
-
-  resetTimer() {
-    // console.log("reset timer called. ID is: ", this.timeoutID);
-    if (this.timeoutID) {
-      // console.log("resetting timer")
-      window.clearInterval(this.timeoutID);
-      this.goActive();
-    }
-  }
-   
-  goInactive() {
-    console.log("player went idle. socket is: ", this.socket);
-    if (this.socket) {
-      console.log("socket disconnect about to be called")
-      this.socket.disconnect();
-      this.removeListeners();
-      this.matchFound = null;
-      this.player     = null
-      this.setState({ 
-        isWaiting:    true,
-        isPlayerIdle: true
-      });      
-    }
-  }
-   
-  goActive() {
-    // console.log("goActive called");
-    this.startIdleTimer();
-  }
-
 
   /*
    * Helper function that returns a random number between the two supplied
@@ -106,7 +49,7 @@ export default class App extends Component {
    */
   onReset(isPlayingAI){
     this.socket.emit('reset');
-    this.resetBoard(false, isPlayingAI);
+    this.resetBoard(false, isPlayingAI, false);
   }
 
   /**
@@ -157,8 +100,7 @@ export default class App extends Component {
    * @param isWaiting : Boolean
    *
    */
-  resetBoard(isWaiting, isPlayingAI){
-    console.log("resetBoard Called")
+  resetBoard(isWaiting, isPlayingAI, playerDisconnect){
     this.setState({
       gameBoard: [
         ' ',' ',' ',
@@ -168,7 +110,10 @@ export default class App extends Component {
       isPlayerIdle: false,
       isPlayingAI: isPlayingAI,
       isWaiting: isWaiting,
+      playerDisconnect: playerDisconnect,
+      matchFound: false,
       winner: null,
+      player: 'x',
       turn: 'x'
     });
   }
@@ -188,7 +133,7 @@ export default class App extends Component {
     if (topRow.match(/xxx|ooo/)   || middleRow.match(/xxx|ooo/) ||
         leftCol.match(/xxx|ooo/)  || middleCol.match(/xxx|ooo/) ||
         rightCol.match(/xxx|ooo/) || leftDiag.match(/xxx|ooo/)  ||
-        rightDiag.match(/xxx|ooo/)) {
+        rightDiag.match(/xxx|ooo/ || bottomRow.match(/xxx|ooo/))) {
       return this.nextTurn(this.state.turn);
     } else if (moves.length === 9) {
       return 'd';
@@ -225,10 +170,9 @@ export default class App extends Component {
    * Sets up the waiting player to play a randomized AI
    */
   playAI() {
-    this.removeListeners();
+    idleHelpers.removeListeners();
     this.socket.disconnect();
-    this.player = 'x';
-    this.resetBoard(false, true);
+    this.resetBoard(false, true, false);
   }
 
   /**
@@ -237,9 +181,9 @@ export default class App extends Component {
    */ 
   reconnectPlayer() {
     console.log("Reconnect player. Socket is: ", this.socket);
-    this.removeListeners();
+    idleHelpers.removeListeners();
     this.socket.connect();
-    this.resetBoard(true, false);
+    this.resetBoard(true, false, false);
   }
 
   /**
@@ -332,59 +276,50 @@ export default class App extends Component {
     this.socket.on('connect', () => {
       console.log('Client socket connected');
       console.log("socket ID: ", this.socket.io.engine.id);
-      that.setupIdleTimer();
+      idleHelpers.setupIdleTimer();
     })
 
     // when we get an updated player count..
     this.socket.on('playerX', (count) => {
-      that.player    = 'x';
-      console.log("You are Player: ", that.player);
-      console.log("Turn: ", that.state.turn);
-      that.setState({ isWaiting: true });
+      that.setState({ 
+        isWaiting: true,
+        player: 'x'
+      });
     })
 
     this.socket.on('playerO', (count) => {
-      that.player     = 'o';
-      that.matchFound = true;
-      console.log("You are Player: ", that.player);
-      console.log("Turn: ", that.state.turn);
-      that.setState(that.state, that.updateIntro);
-      // that.setupIdleTimer();
+      that.setState({
+        player: 'o',
+        matchFound: true
+      }, that.updateIntro);
     })
 
     // when we find a pair for the odd player
     this.socket.on('matchFound', () => {
-      console.log("Match Found");
-      that.matchFound = true;
-      that.setState(that.state, that.updateIntro);
-      // that.setupIdleTimer();
+      that.setState({
+        matchFound: true
+      }, that.updateIntro);
     })
 
     // when a player move event is detected.
     this.socket.on('playerMove', (data) => {
-      console.log('Player Move Detected');
       that.updateState(data);
     }) 
 
     // when a player has won the game.
     this.socket.on('winner', (winner) => {
-      console.log('Game over. Winner is: ', winner);
       that.onWinner(winner);
     })
 
     // when a player clicks the reset button
     this.socket.on('reset', (winner) => {
-      that.resetBoard(false, false)
+      that.resetBoard(false, false, false);
     })
 
     // if the other player disconnects
     this.socket.on('playerDisconnect', () => {
       console.log("Other Player Disconnected");
-      // that.removeListeners();
-      that.playerDisconnect = true;
-      that.matchFound       = null;
-      that.player           = 'x';
-      that.resetBoard(true, false)
+      that.resetBoard(true, false, true);
     })
   }
 
@@ -395,7 +330,7 @@ export default class App extends Component {
       this.connectSocket();
     } else {
       document.removeEventListener('mousemove', this.connectionCheck, false);
-      document.removeEventListener('deviceorientation', this.connectionCheck, false);
+      document.removeEventListener('touchstart', this.connectionCheck, false);
     }
   }
 
@@ -406,7 +341,7 @@ export default class App extends Component {
     console.log('Component Mounted in App.js');
     
     document.addEventListener('mousemove', this.connectionCheck, false);
-    document.addEventListener('deviceorientation', this.connectionCheck, false);
+    document.addEventListener('touchstart', this.connectionCheck, false);
   }
 
   componentWillMount() {
@@ -422,26 +357,26 @@ export default class App extends Component {
       <div className='container'>
         <Menu 
           turn  ={this.state.turn}
-          player={this.player} />
+          player={this.state.player} />
         <SideBar 
-          player={this.player} />
+          player={this.state.player} />
         <Announcement 
-          onReset    ={this.onReset.bind(this)}
-          isWaiting  ={this.state.isWaiting}
-          matchFound ={this.matchFound}
-          disconnect ={this.playerDisconnect}
-          player     ={this.player} 
-          winner     ={this.state.winner}
-          isPlayingAI={this.state.isPlayingAI} 
-          isPlayerIdle={this.state.isPlayerIdle}
+          onReset        ={this.onReset.bind(this)}
+          isWaiting      ={this.state.isWaiting}
+          matchFound     ={this.state.matchFound}
+          disconnect     ={this.state.playerDisconnect}
+          player         ={this.state.player} 
+          winner         ={this.state.winner}
+          isPlayingAI    ={this.state.isPlayingAI} 
+          isPlayerIdle   ={this.state.isPlayerIdle}
           reconnectPlayer={this.reconnectPlayer.bind(this)}
-          playAI     ={this.playAI.bind(this)} />
+          playAI         ={this.playAI.bind(this)} />
         <Board 
-          gameBoard  ={this.state.gameBoard}
-          handleClick={this.handleClick.bind(this)}
-          isPlayingAI={this.state.isPlayingAI}
-          player     ={this.player}
-          turn       ={this.state.turn} />
+          gameBoard      ={this.state.gameBoard}
+          handleClick    ={this.handleClick.bind(this)}
+          isPlayingAI    ={this.state.isPlayingAI}
+          player         ={this.state.player}
+          turn           ={this.state.turn} />
       </div>
     );
   }
