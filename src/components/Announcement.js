@@ -163,16 +163,16 @@ export default class Announcement extends Component {
     return(
       <section className={"announcement " + (this.props.winner || this.props.isWaiting ? "visible" : "hidden" )}>
       	<GetAnnouncement 
-          player      ={this.props.player} 
-          isWaiting   ={this.props.isWaiting} 
-          matchFound  ={this.props.matchFound}
-          disconnect  ={this.props.disconnect}
-          onReset     ={this.props.onReset} 
-          winner      ={this.props.winner} 
-          isPlayerIdle={this.props.isPlayerIdle}
+          player         ={this.props.player} 
+          isWaiting      ={this.props.isWaiting} 
+          matchFound     ={this.props.matchFound}
+          disconnect     ={this.props.disconnect}
+          onReset        ={this.props.onReset} 
+          winner         ={this.props.winner} 
+          isPlayerIdle   ={this.props.isPlayerIdle}
           reconnectPlayer={this.props.reconnectPlayer}
-          isPlayingAI ={this.props.isPlayingAI}
-          playAI      ={this.props.playAI} />
+          isPlayingAI    ={this.props.isPlayingAI}
+          playAI         ={this.props.playAI} />
       </section>
     )
   }

@@ -1,8 +1,8 @@
 import {combineReducers} from 'redux'
-import SomethingReducer from './reduceSomething'
+import GameReducer from './game-reducer'
 
 const allReducers = combineReducers({
-  something: SomethingReducer
+  GameReducer
 });
 
 export default allReducers;

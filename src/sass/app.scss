@@ -7,8 +7,9 @@ $valid-color: #4e6e5d;
 $negative-color: #a72608;
 
 // Board
+$tile-size: 90px;
 $tile-size--large: 150px;
-$tile-margin--large: 15px;
+$tile-spacing: 6px;
 
 
 //
@@ -19,27 +20,36 @@ html, body {
   margin: 0;
   height: 100%;
   width: 100%;
+  overflow: hidden;
   font-family: 'Anaheim', sans-serif;
+  text-shadow: rgba(0,0,0,.01) 0 0 1px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 } 
 
+// contains the game tiles
 .board {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  height: 315px;
-  width: 315px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition: all 500ms ease;
+  transform: translate(-50%, -50%);
+  height: $tile-size*3 + $tile-spacing*2;
+  width: $tile-size*3 + $tile-spacing*2;
   margin: auto;
   @media (min-width: 768px) {
-    height: 550px;
-    width: 550px;
+    height: $tile-size--large*3 + $tile-spacing*2;
+    width: $tile-size--large*3 + $tile-spacing*2;
   }
 }
 
+// Individual game tiles
 .tile {
   background: transparent;
-  border: 1px solid black;
-  margin: 15px;
   height: $tile-size--large;
   width: $tile-size--large;
   display: flex;
@@ -47,6 +57,14 @@ html, body {
   &:hover {
     background: $valid-color;
     cursor: pointer;
+  }
+  &:nth-of-type(4), &:nth-of-type(5), &:nth-of-type(6) {
+    border-bottom: $tile-spacing solid black;
+    border-top: $tile-spacing solid black;
+  }
+  &:nth-of-type(3n + 2) {
+    border-left: $tile-spacing solid black;
+    border-right: $tile-spacing solid black;
   }
   &.has-value {
     &:hover {
@@ -94,13 +112,7 @@ html, body {
   margin-top: 0;
   text-transform: uppercase;
   opacity: 0;
-  
-  // ===========================================
-  // Add Animation Here
-
   animation: fade-in-from-below-letter-spacing 1s ease-in-out 0.3s forwards;
-
-  // ===========================================
 }
 
 // Lists the winner of the match.
@@ -119,13 +131,7 @@ html, body {
   font-size: 24px;
   color: $primary-color;
   opacity: 0;
-
-  // ===========================================
-  // Add Animation Here
-
   animation: fade-in-from-below 1.3s ease-out 0.5s forwards;
-
-  // ===========================================
 }
 
 .turn-text {
@@ -192,6 +198,7 @@ html, body {
   border: 3px solid $primary-color;
   color: $secondary-color;
 }
+
 
 // ===========================================
 // ANIMATION KEYFRAMES
