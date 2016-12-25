@@ -11,6 +11,17 @@ $tile-size: 90px;
 $tile-size--large: 150px;
 $tile-spacing: 6px;
 
+// Creates part of the game winning animation. 
+// One for each of the 3 tiles.
+@mixin winning-animation($type, $delay) {
+  .tile:nth-of-type(#{$type}) {
+    background: $valid-color;
+    color: #fff;
+    transition: all 250ms cubic-bezier(1, 0.14, 0, 0.91) #{$delay}ms;
+  }
+}
+
+
 
 //
 // Tic Tac Toe
@@ -44,6 +55,46 @@ html, body {
   @media (min-width: 768px) {
     height: $tile-size--large*3 + $tile-spacing*2;
     width: $tile-size--large*3 + $tile-spacing*2;
+  }
+  &.top-row {
+    @include winning-animation(1, 0);
+    @include winning-animation(2, 250);
+    @include winning-animation(3, 500);
+  }
+  &.middle-row {
+    @include winning-animation(4, 0);
+    @include winning-animation(5, 250);
+    @include winning-animation(6, 500);
+  }
+  &.bottom-row {
+    @include winning-animation(7, 0);
+    @include winning-animation(8, 250);
+    @include winning-animation(9, 500);
+  }
+  &.left-col {
+    @include winning-animation(1, 0);
+    @include winning-animation(4, 250);
+    @include winning-animation(7, 500);
+  }
+  &.middle-col {
+    @include winning-animation(2, 0);
+    @include winning-animation(5, 250);
+    @include winning-animation(8, 500);
+  }
+  &.right-col {
+    @include winning-animation(3, 0);
+    @include winning-animation(6, 250);
+    @include winning-animation(9, 500);
+  }
+  &.diag-up {
+    @include winning-animation(7, 0);
+    @include winning-animation(5, 250);
+    @include winning-animation(3, 500);
+  }
+  &.diag-down {
+    @include winning-animation(1, 0);
+    @include winning-animation(5, 250);
+    @include winning-animation(9, 500);
   }
 }
 
@@ -95,11 +146,12 @@ html, body {
   width: 100%;
   left: 0;
   top: 0;
-  transition: all 750ms ease;
+  transition: all 750ms ease 0ms;
   z-index: -1;
 }
 
 .announcement.visible {
+  transition: all 750ms ease 1100ms;
   opacity: 1;
   z-index: 1;
 }
@@ -130,6 +182,7 @@ html, body {
 .announcement__sub-message {
   font-size: 24px;
   color: $primary-color;
+  min-height: 30px;
   opacity: 0;
   animation: fade-in-from-below 1.3s ease-out 0.5s forwards;
 }
@@ -190,7 +243,7 @@ html, body {
   left: auto;
   right: auto;
   top: auto;
-  margin: 0 auto;
+  margin: 30px auto;
 }
 
 .btn--reset__announcement:hover {
@@ -200,10 +253,10 @@ html, body {
 }
 
 
+
 // ===========================================
 // ANIMATION KEYFRAMES
 // ===========================================
-
 @keyframes fade-in-from-below-letter-spacing {
   0% {
     opacity: 0;

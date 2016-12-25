@@ -64,10 +64,29 @@ export const getWinner = (board, turn) => {
   let rightDiag = board[2] + board[4] + board[6];
 
   // Check for any winning combinations
-  if (topRow.match(/xxx|ooo/)    || middleRow.match(/xxx|ooo/) ||
-      leftCol.match(/xxx|ooo/)   || middleCol.match(/xxx|ooo/) ||
-      rightCol.match(/xxx|ooo/)  || leftDiag.match(/xxx|ooo/)  ||
-      rightDiag.match(/xxx|ooo/) || bottomRow.match(/xxx|ooo/)) {
+  if (topRow.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active top-row";
+    return turn;  
+  } else if (middleRow.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active middle-row";
+    return turn;      
+  } else if (leftCol.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active left-col";
+    return turn;    
+  } else if (middleCol.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active middle-col";
+    return turn;    
+  } else if (rightCol.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active right-col";
+    return turn;   
+  } else if (leftDiag.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active diag-down";
+    return turn;    
+  } else if (rightDiag.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active diag-up";
+    return turn;   
+  } else if (bottomRow.match(/xxx|ooo/)) {
+    document.querySelector('.board').classList += " active bottom-row";
     return turn;
   } else if (moves.length === 9) {
     return 'd';

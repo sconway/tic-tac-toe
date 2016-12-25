@@ -1,7 +1,7 @@
 {
   "name": "tic-tac-react-with-sockets",
-  "version": "0.0.2",
-  "description": "An implementation of Tic Tac Toe in React.js with websockets and an Express server",
+  "version": "1.0.3",
+  "description": "An implementation of Tic Tac Toe in React.js/Redux.js with websockets and an Express server",
   "main": "src/index.js",
   "keywords": [
     "react",
@@ -16,7 +16,7 @@
     "toe"
   ],
   "author": "Scott Conway",
-  "license": "MIT",
+  "license": "None",
   "repository": {
     "type": "git",
     "url": "https://github.com/sconway/tic-tac-toe.git"

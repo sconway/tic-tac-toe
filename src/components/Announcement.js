@@ -25,7 +25,6 @@ function DidDisconnect(props) {
   }
 }
 
-
 /*
  * Returns one of a few possible submessages depending on if the other
  * player has been found.
@@ -53,7 +52,6 @@ function GetSubMessage(props) {
   }
 }
 
-
 /*
  * Returns one of a few possible submessages depending on if the
  * current player has been idle for too long.
@@ -72,7 +70,6 @@ function TimeoutMessage(props) {
   }
 }
 
-
 /*
  * Returns one of a few possible submessages depending on if the player
  * has been assigned a game piece yet.
@@ -80,17 +77,12 @@ function TimeoutMessage(props) {
 function PlayerMessage(props) {
   const player = props.player
 
-  if (player) {
-    return (
-      <h3 className="announcement__sub-message">
-        Your piece is: {player}
-      </h3>
-    )
-  } else {
-    return null
-  }
+  return (
+    <h3 className="announcement__sub-message">
+      {player ? 'Your piece is: ' + player : ''}
+    </h3>
+  )
 }
-
 
 /*
  * Returns one of a few possible submessages depending on if the player

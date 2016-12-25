@@ -100,6 +100,9 @@ const boardCleared = (state, action) => {
   let player = (op.didPlayerDisconnect || op.isPlayerIdle) ? 
                 null : (op.isPlayingAI ? 'x' : state.player);
 
+  // clear the winning line
+  document.querySelector('.board').classList = 'board';
+
   return updateObject(initialState, {
     isWaiting:           op.isWaiting,
     isPlayingAI:         op.isPlayingAI,

@@ -4,7 +4,7 @@ import Tile from "./Tile.js"
 export default class Board extends React.Component {
 	render() {
 		return (
-			<div className='board'>
+			<div className="board">
         {this.props.gameBoard.map((value, i) => {
           return (
             <Tile
